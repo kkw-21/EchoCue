@@ -26,9 +26,13 @@ final class AppState: ObservableObject {
     @Published var voiceAdvancePhrases: String {
         didSet { defaults.set(voiceAdvancePhrases, forKey: Keys.voiceAdvancePhrases) }
     }
-    @Published var rightArrowAdvanceEnabled: Bool {
-        didSet { defaults.set(rightArrowAdvanceEnabled, forKey: Keys.rightArrowAdvance) }
+    @Published var globalHotKeyEnabled: Bool {
+        didSet { defaults.set(globalHotKeyEnabled, forKey: Keys.globalHotKeyEnabled) }
     }
+    @Published var globalAdvanceKey: GlobalAdvanceKey {
+        didSet { defaults.set(globalAdvanceKey.rawValue, forKey: Keys.globalAdvanceKey) }
+    }
+    @Published private(set) var globalHotKeyStatus = ""
 
     private let speechFollower = SpeechFollower()
     private let defaults = UserDefaults.standard
@@ -41,7 +45,8 @@ final class AppState: ObservableObject {
         static let backgroundOpacity = "backgroundOpacity"
         static let captureProtection = "captureProtection"
         static let voiceAdvancePhrases = "voiceAdvancePhrases"
-        static let rightArrowAdvance = "rightArrowAdvance"
+        static let globalHotKeyEnabled = "globalHotKeyEnabled"
+        static let globalAdvanceKey = "globalAdvanceKey"
     }
 
     private init() {
@@ -51,7 +56,10 @@ final class AppState: ObservableObject {
         captureProtectionEnabled = defaults.object(forKey: Keys.captureProtection) as? Bool ?? true
         voiceAdvancePhrases = defaults.string(forKey: Keys.voiceAdvancePhrases)
             ?? "you know, you know what I mean, for example, next line, 下一句, 换行"
-        rightArrowAdvanceEnabled = defaults.object(forKey: Keys.rightArrowAdvance) as? Bool ?? true
+        globalHotKeyEnabled = defaults.object(forKey: Keys.globalHotKeyEnabled) as? Bool ?? true
+        globalAdvanceKey = GlobalAdvanceKey(
+            rawValue: defaults.string(forKey: Keys.globalAdvanceKey) ?? "tab"
+        ) ?? .tab
         cues = ScriptParser.segments(from: scriptText)
     }
 
@@ -143,9 +151,13 @@ final class AppState: ObservableObject {
         lastAdvanceTime = Date()
     }
 
-    func advanceByKeyboard() {
+    func advanceByGlobalHotKey() {
         advance()
-        statusText = "→ key → Listening"
+        statusText = "\(globalAdvanceKey.symbol) → Next cue"
+    }
+
+    func setGlobalHotKeyStatus(_ status: String) {
+        globalHotKeyStatus = status
     }
 
     func goBack() {

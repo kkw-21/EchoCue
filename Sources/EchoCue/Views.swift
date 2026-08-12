@@ -187,10 +187,18 @@ struct ScriptEditorView: View {
                         .textFieldStyle(.roundedBorder)
                 }
                 HStack {
-                    Toggle("Right arrow advances while listening", isOn: $state.rightArrowAdvanceEnabled)
+                    Toggle("Global next-cue key", isOn: $state.globalHotKeyEnabled)
                         .toggleStyle(.switch)
+                    Picker("", selection: $state.globalAdvanceKey) {
+                        ForEach(GlobalAdvanceKey.allCases) { key in
+                            Text(key.displayName).tag(key)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 130)
+                    .disabled(!state.globalHotKeyEnabled)
                     Spacer()
-                    Text("A voice phrase or → always escapes a stuck line.")
+                    Text(state.globalHotKeyStatus)
                         .foregroundStyle(.secondary)
                 }
                 .font(.caption)

@@ -10,7 +10,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "EchoCue",
-            path: "Sources/EchoCue"
+            path: "Sources/EchoCue",
+            linkerSettings: [.linkedFramework("Carbon")]
         ),
         .testTarget(
             name: "EchoCueTests",

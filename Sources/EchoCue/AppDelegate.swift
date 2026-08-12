@@ -1,5 +1,4 @@
 import AppKit
-import ApplicationServices
 import Combine
 import SwiftUI
 
@@ -15,17 +14,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var editorWindow: NSWindow!
     private var statusItem: NSStatusItem!
     private var cancellables = Set<AnyCancellable>()
-    private var globalKeyMonitor: Any?
-    private var localKeyMonitor: Any?
-    private var didRequestKeyboardPermission = false
+    private var globalHotKeyController: GlobalHotKeyController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         createOverlay()
         createEditor()
         createStatusItem()
+        createGlobalHotKey()
         observeState()
-        installKeyboardMonitors()
         positionOverlayBelowCamera()
         overlayPanel.orderFrontRegardless()
         editorWindow.makeKeyAndOrderFront(nil)
@@ -34,11 +31,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
-    }
-
-    func applicationWillTerminate(_ notification: Notification) {
-        if let globalKeyMonitor { NSEvent.removeMonitor(globalKeyMonitor) }
-        if let localKeyMonitor { NSEvent.removeMonitor(localKeyMonitor) }
     }
 
     private func createOverlay() {
@@ -92,6 +84,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(withTitle: state.isListening ? "Pause Listening" : "Start Listening",
                      action: #selector(toggleListening), keyEquivalent: "l").target = self
+        let globalTitle = state.globalHotKeyEnabled
+            ? "Global Next Cue: \(state.globalAdvanceKey.symbol)"
+            : "Global Next Cue: Off"
+        menu.addItem(withTitle: globalTitle, action: nil, keyEquivalent: "").isEnabled = false
         menu.addItem(withTitle: "Previous Cue", action: #selector(previousCue), keyEquivalent: "[").target = self
         menu.addItem(withTitle: "Next Cue", action: #selector(nextCue), keyEquivalent: "]").target = self
         menu.addItem(withTitle: "Restart Script", action: #selector(restartScript), keyEquivalent: "r").target = self
@@ -109,44 +105,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             .store(in: &cancellables)
 
-        state.$isListening
-            .removeDuplicates()
-            .sink { [weak self] listening in
-                guard let self, listening, self.state.rightArrowAdvanceEnabled,
-                      !self.didRequestKeyboardPermission else { return }
-                self.didRequestKeyboardPermission = true
-                if !CGPreflightListenEventAccess() {
-                    _ = CGRequestListenEventAccess()
-                }
+        Publishers.CombineLatest(
+            state.$globalHotKeyEnabled.removeDuplicates(),
+            state.$globalAdvanceKey.removeDuplicates()
+        )
+            .sink { [weak self] enabled, key in
+                self?.configureGlobalHotKey(enabled: enabled, key: key)
             }
             .store(in: &cancellables)
     }
 
-    private func installKeyboardMonitors() {
-        globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+    private func createGlobalHotKey() {
+        globalHotKeyController = GlobalHotKeyController { [weak self] in
             DispatchQueue.main.async {
-                self?.handleRightArrow(event)
+                guard let self else { return }
+                self.state.advanceByGlobalHotKey()
+                if !self.overlayPanel.isVisible {
+                    self.overlayPanel.orderFrontRegardless()
+                }
             }
-        }
-
-        localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self else { return event }
-            // Never steal arrow navigation while the script editor is active.
-            guard !self.editorWindow.isKeyWindow else { return event }
-            return self.handleRightArrow(event) ? nil : event
         }
     }
 
-    @discardableResult
-    private func handleRightArrow(_ event: NSEvent) -> Bool {
-        let disallowedModifiers: NSEvent.ModifierFlags = [.command, .control, .option, .shift]
-        guard event.keyCode == 124,
-              event.modifierFlags.intersection(disallowedModifiers).isEmpty,
-              state.isListening,
-              state.rightArrowAdvanceEnabled,
-              overlayPanel.isVisible else { return false }
-        state.advanceByKeyboard()
-        return true
+    private func configureGlobalHotKey(enabled: Bool, key: GlobalAdvanceKey) {
+        guard enabled else {
+            globalHotKeyController?.unregister()
+            state.setGlobalHotKeyStatus("Global shortcut is off")
+            return
+        }
+
+        let status = globalHotKeyController?.register(key) ?? OSStatus(paramErr)
+        if status == noErr {
+            state.setGlobalHotKeyStatus("\(key.symbol) works globally—even when listening stops")
+        } else {
+            state.setGlobalHotKeyStatus("Could not register \(key.displayName); choose another key")
+        }
     }
 
     @objc private func showEditor() {

@@ -9,7 +9,7 @@ EchoCue is an open-source, voice-following teleprompter for macOS. It floats bel
 - English and Chinese script segmentation
 - Live speech recognition with fuzzy, ordered-word matching
 - Editable voice escape phrases for missed sentence endings
-- Right-arrow escape key while listening
+- Configurable global next-cue key that works even when speech recognition stops
 - Resizable, movable, always-on-top overlay across Spaces
 - Menu-bar controls and persistent appearance settings
 - Best-effort capture exclusion with `NSWindow.sharingType = .none`
@@ -25,7 +25,7 @@ cd EchoCue
 open dist/EchoCue.app
 ```
 
-EchoCue requires macOS 13 or newer. On first launch, allow Microphone and Speech Recognition access. The right-arrow shortcut may also require Input Monitoring access.
+EchoCue requires macOS 13 or newer. On first launch, allow Microphone and Speech Recognition access. The global next-cue key uses the macOS hot-key system and does not require Input Monitoring access.
 
 Release builds are ad-hoc signed rather than Apple-notarized. If Gatekeeper blocks the first launch, Control-click the app, choose **Open**, and confirm once.
 
@@ -36,7 +36,7 @@ Release builds are ad-hoc signed rather than Apple-notarized. If Gatekeeper bloc
 3. Move the overlay below your camera.
 4. Click **Start Listening** and begin speaking.
 
-If recognition misses the end of a cue, say an editable skip phrase—`you know`, `you know what I mean`, `for example`, `next line`, `下一句`, or `换行`—or press the right-arrow key. Partial recognition updates trigger each spoken command only once.
+If recognition misses the end of a cue, say an editable skip phrase—`you know`, `you know what I mean`, `for example`, `next line`, `下一句`, or `换行`—or press the global next-cue key. It defaults to `Tab`, can be changed to Right Arrow or Space, and works whenever EchoCue is running—even when another app has focus or speech recognition has stopped. Because it is global, the selected key is reserved by EchoCue until you disable the shortcut or quit the app. Partial recognition updates trigger each spoken command only once.
 
 ## Privacy
 

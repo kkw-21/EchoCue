@@ -15,9 +15,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.1.0</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSUIElement</key>
@@ -26,8 +26,6 @@
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>EchoCue listens while you speak so it can advance your script automatically.</string>
-    <key>NSInputMonitoringUsageDescription</key>
-    <string>EchoCue listens for the right-arrow key while prompting so you can escape a stuck cue.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>EchoCue recognizes the words you read to keep the next cue in view.</string>
 </dict>
